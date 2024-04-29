@@ -1,0 +1,27 @@
+server {
+  listen 80;
+  listen 443 ssl;
+  server_name "~^(?<subdomain>[a-zA-Z0-9_-]+)\.testimiskeskkond\.narisa\.ee$";
+
+  ssl_certificate /etc/letsencrypt/live/testimiskeskkond.narisa.ee/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/testimiskeskkond.narisa.ee/privkey.pem;
+
+  if ($https != 'on') {
+  return 301 https://$subdomain.testimiskeskkond.narisa.ee$request_uri;
+}
+
+gzip on;
+gzip_static on;
+
+root /var/www/testimiskeskkond.narisa.ee/$subdomain;
+index index.html;
+
+location / {
+try_files $uri $uri/ /index.html;
+}
+
+error_page 404 /index.html;
+}
+
+
+

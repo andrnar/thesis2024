@@ -1,0 +1,50 @@
+name: Testing CI/CD
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build_and_deploy:
+    name: Build and deploy testing
+    runs-on: ubuntu-latest
+    environment: testing
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Parse branch name
+        id: branchName
+        run: |
+          echo "folder=$(echo ${GITHUB_REF#refs/heads/*} | sed -r 's/[^a-zA-Z0-9]+/-/g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run:  npm test
+
+      - name: Copy build files via RSYNC
+        uses: burnett01/rsync-deployments@master
+        with:
+          switches: -avzr --delete
+          path: nodejs-webapp/
+          remote_path: /var/www/testimiskeskkond.narisa.ee/${{ steps.branchName.outputs.folder }}
+          remote_port: ${{ secrets.TESTING_VM_SSH_PORT }}
+          remote_host: ${{ secrets.TESTING_VM_SSH_HOST }}
+          remote_user: ${{ secrets.TESTING_VM_SSH_USERNAME }}
+          remote_key: ${{ secrets.TESTING_VM_SSH_KEY }}
+
